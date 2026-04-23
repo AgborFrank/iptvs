@@ -4,26 +4,31 @@
     "slug": "aleigrotv",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app.png",
     "scheme": "aleigrotv",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/images/app.png",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
+      "package": "com.ayukfranklen.aleigrotv",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/app.png",
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/app.png"
     },
     "plugins": [
       "expo-router",
@@ -38,7 +43,19 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-video",
+      "expo-audio",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(BUNDLE_IDENTIFIER) to access your media library.",
+          "savePhotosPermission": "Allow $(BUNDLE_IDENTIFIER) to save to your media library.",
+          "isAccessMediaLocationEnabled": true,
+          "permissions": ["AUDIO"]
+        }
+      ],
+      "react-native-video"
     ],
     "experiments": {
       "typedRoutes": true,

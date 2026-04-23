@@ -1,24 +1,41 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { FONTS, fontAssets } from '@/constants/fonts';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { useEffect } from 'react';
+import { Text, TextInput } from 'react-native';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+const TextAny = Text as any;
+if (!TextAny.defaultProps) TextAny.defaultProps = {};
+TextAny.defaultProps.style = { fontFamily: FONTS.regular };
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+const TextInputAny = TextInput as any;
+if (!TextInputAny.defaultProps) TextInputAny.defaultProps = {};
+TextInputAny.defaultProps.style = { fontFamily: FONTS.regular };
+
+SplashScreen.preventAutoHideAsync();
+
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const [loaded] = useFonts(fontAssets);
+
+  useEffect(() => {
+    if (loaded) SplashScreen.hideAsync();
+  }, [loaded]);
+
+  if (!loaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="player" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="matches" options={{ presentation: 'card' }} />
+        <Stack.Screen name="match-stream" options={{ presentation: 'card' }} />
+        <Stack.Screen name="article" options={{ presentation: 'card' }} />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+      <StatusBar style="light" />
+    </>
   );
 }
