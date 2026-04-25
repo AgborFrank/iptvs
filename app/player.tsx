@@ -37,24 +37,24 @@ function isYouTubeUrl(u: string) {
   return u.includes('youtube.com') || u.includes('youtu.be');
 }
 
-function detectStreamType(u: string): 'hls' | 'mpd' | undefined {
+// Only force DASH type — HLS and MPEG-TS are best left to ExoPlayer auto-detect.
+// Forcing type:'hls' causes ExoPlayer to reject direct MPEG-TS streams many IPTV
+// servers send (it expects an M3U8 playlist, not raw TS packets).
+function detectStreamType(u: string): 'mpd' | undefined {
   const lower = u.toLowerCase().split('?')[0];
-  if (lower.endsWith('.mpd') || lower.includes('/dash/')) return 'mpd';
-  if (
-    lower.endsWith('.m3u8') ||
-    lower.includes('/hls/') ||
-    lower.includes('chunklist') ||
-    lower.includes('master.m3u8') ||
-    lower.includes('playlist.m3u8') ||
-    lower.includes('index.m3u8')
-  ) return 'hls';
-  return undefined;
+  if (lower.endsWith('.mpd') || lower.includes('/dash/') || lower.includes('manifest/dash')) return 'mpd';
+  return undefined; // let ExoPlayer / AVPlayer auto-detect everything else
 }
 
-// A TV-like UA avoids CDN blocks (Samsung, Pluto, Stirr, etc. check User-Agent)
-const STREAM_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) SamsungBrowser/2.1 TV Safari/538.1',
+// Browser-like UA + headers applied to every HTTP request ExoPlayer makes
+// (manifest fetch AND every TS segment request via OkHttp's DataSource).
+const STREAM_HEADERS: Record<string, string> = {
+  'User-Agent': 'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) SamsungBrowser/2.1 TV Safari/538.1',
+  'Accept': '*/*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Connection': 'keep-alive',
+  'Cache-Control': 'no-cache',
+  'Pragma': 'no-cache',
 };
 
 const MAX_RETRIES = 3;
@@ -263,11 +263,17 @@ export default function PlayerScreen() {
     </>
   );
 
+  const streamType = detectStreamType(url ?? '');
+
   const videoEl = !isYouTube && (
     <Video
       key={retryKey}
       ref={videoRef}
-      source={{ uri: url ?? '', type: detectStreamType(url ?? ''), headers: STREAM_HEADERS }}
+      source={{
+          uri: url ?? '',
+          ...(streamType ? { type: streamType } : {}),
+          headers: STREAM_HEADERS,
+        }}
       style={StyleSheet.absoluteFill}
       resizeMode="contain"
       paused={paused}
@@ -277,14 +283,17 @@ export default function PlayerScreen() {
       playInBackground={false}
       playWhenInactive={false}
       ignoreSilentSwitch="ignore"
+      hideShutterView
       bufferConfig={{
         minBufferMs: 3000,
-        maxBufferMs: 50000,
-        bufferForPlaybackMs: 2500,
-        bufferForPlaybackAfterRebufferMs: 5000,
+        maxBufferMs: 15000,
+        bufferForPlaybackMs: 2000,
+        bufferForPlaybackAfterRebufferMs: 3000,
+        backBufferDurationMs: 0,
+        cacheSizeMB: 0,
       }}
       onBuffer={({ isBuffering }) => setBuffering(isBuffering)}
-      onError={() => setHasError(true)}
+      onError={(e) => { console.warn('[Player] stream error', JSON.stringify(e?.error ?? e)); setHasError(true); }}
       onLoad={({ duration: d }) => {
         setDuration(Number.isFinite(d) ? d : 0);
         setIsReady(true);
